@@ -83,11 +83,12 @@ class PostsController extends Controller
         $post = Post::create($request->all());
 
 
-        if (!$post) {
-            return $this->fmtResponse(null, 'Post not created ', 502);
+        if ($post) {
+            return $this->fmtResponse(new PostResources($post));
 
         }
-        return $this->fmtResponse(new PostResources($post));
+        return $this->fmtResponse(null, 'Post not created ', 502);
+
 
     }
 
@@ -153,15 +154,13 @@ class PostsController extends Controller
             return $this->notFound();
 
         }
-
         /*Smarter validation */
         $validation = $this->post_validator($request);
         if ($validation instanceof Response) {
             return $validation;
         }
 
-
-        $post = $post::update($request->all());
+        $post = $post->update($request->all());
 
 
         if (!$post) {
@@ -191,7 +190,7 @@ class PostsController extends Controller
 
         }
 
-        $delete = Post::Destroy($id);
+        $delete = $post->delete();
 
         if (!$delete) {
             return $this->fmtResponse(null, 'Post not Deleted ', 502);
