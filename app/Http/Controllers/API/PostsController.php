@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResources;
 use App\Post;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Validator;
 
 class PostsController extends Controller
@@ -22,7 +23,7 @@ class PostsController extends Controller
     {
 
 //        $posts =PostResources::collection( Post::ALL());
-        $posts =PostResources::collection( Post::paginate($this->paginate_number));
+        $posts = PostResources::collection(Post::paginate($this->paginate_number));
 
         return $this->fmtResponse($posts);
     }
@@ -47,30 +48,38 @@ class PostsController extends Controller
     {
 
 
+        /*logn way*/
+        /*  if  (!$request->has('title') && $request->get('title') == ''){
+              return $this->fmtResponse(null, 'post title is required', 301);
+
+          }
+
+
+          if  (!$request->has('body') && $request->get('body') == ''){
+              return $this->fmtResponse(null, 'post body is required', 301);
+
+          }*/
+
+
         /*smart validation way */
-        $validate = Validator::make($request->all(),[
-            'title'=>'required',
-            'body'=>'required',
-        ]);
+        /*   $validate = Validator::make($request->all(), [
+               'title' => 'required',
+               'body' => 'required',
+           ]);
 
 
-        if ($validate->fails()){
-            return $this->fmtResponse(null, $validate->errors(), 301);
+           if ($validate->fails()) {
+               return $this->fmtResponse(null, $validate->errors(), 301);
+           }
+           */
+
+        /*Smarter validation */
+        $validation = $this->post_validator($request);
+        if ($validation instanceof Response) {
+            return $validation;
         }
-         /*logn way*/
-      /*  if  (!$request->has('title') && $request->get('title') == ''){
-            return $this->fmtResponse(null, 'post title is required', 301);
 
-        }
-
-
-        if  (!$request->has('body') && $request->get('body') == ''){
-            return $this->fmtResponse(null, 'post body is required', 301);
-
-        }*/
-
-
-
+        /*Create post */
         $post = Post::create($request->all());
 
 
@@ -79,6 +88,21 @@ class PostsController extends Controller
 
         }
         return $this->fmtResponse(new PostResources($post));
+
+    }
+
+    private function post_validator($request)
+    {
+
+        /*smart validation way */
+        $validate = Validator::make($request->all(), [
+            'title' => 'required|unique:posts',
+            'body' => 'required',
+        ]);
+
+        if ($validate->fails()) {
+            return $this->fmtResponse(null, $validate->errors(), 301);
+        }
 
     }
 
@@ -97,7 +121,7 @@ class PostsController extends Controller
             return $this->fmtResponse(new PostResources($post));
 
         }
-      return  $this->notFound();
+        return $this->notFound();
 
     }
 
@@ -124,24 +148,16 @@ class PostsController extends Controller
 
         $post = Post::find($id);
 
-        return $post;
-
 
         if (!$post) {
-            return  $this->notFound();
+            return $this->notFound();
 
         }
 
-
-        /*smart validation way */
-        $validate = Validator::make($request->all(),[
-            'title'=>'required',
-            'body'=>'required',
-        ]);
-
-
-        if ($validate->fails()){
-            return $this->fmtResponse(null, $validate->errors(), 301);
+        /*Smarter validation */
+        $validation = $this->post_validator($request);
+        if ($validation instanceof Response) {
+            return $validation;
         }
 
 
@@ -157,6 +173,7 @@ class PostsController extends Controller
 
     }
 
+
     /**
      * Remove the specified resource from storage.
      *
@@ -165,6 +182,22 @@ class PostsController extends Controller
      */
     public function destroy($id)
     {
-        //
+
+        $post = Post::find($id);
+
+
+        if (!$post) {
+            return $this->notFound();
+
+        }
+
+        $delete = Post::Destroy($id);
+
+        if (!$delete) {
+            return $this->fmtResponse(null, 'Post not Deleted ', 502);
+
+        }
+        return $this->fmtResponse(null, 'Post Deleted !', 200);
+
     }
 }
